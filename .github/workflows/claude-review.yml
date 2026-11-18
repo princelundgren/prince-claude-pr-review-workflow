@@ -63,7 +63,7 @@ jobs:
           printf '%s\n' "$PR_TITLE" > .pr-text/title.txt
           printf '%s' "$PR_BODY" > .pr-text/description.md
           gh api "repos/$GITHUB_REPOSITORY/pulls/$PR_NUMBER/commits" --paginate \
-            --jq '.[] | "\(.sha[0:8]) \(.commit.message | split("\n")[0])"' > .pr-text/commits.txt
+            --jq '.[] | "\(.sha[0:8]) \(.commit.message)\n"' > .pr-text/commits.txt
 
       # The prompt has Claude hold a workflow change to the github-actions-hardening skill. Pinned by
       # commit SHA, so a change to the skill lands first and a second commit moves the pin to it.
