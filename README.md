@@ -21,7 +21,7 @@ file and one secret.
 - **Reads the repository's `AGENTS.md` first**, so its own rules apply to the review.
 - **Holds a workflow change to a hardening checklist:** a change under `.github/workflows/` or
   `.github/actions/` is checked against the
-  [`github-actions-hardening`](.github/actions/review-skills/github-actions-hardening/SKILL.md)
+  [`github-actions-hardening`](.github/actions/review/github-actions-hardening/SKILL.md)
   skill.
 - **Sorts what it finds** into 🔴 Critical Issues, 🟡 Suggestions, 🔵 Nits and ✅ Checked, and
   doesn't repeat an issue it already posted. Every push starts another review, so fix a 🔵 only
@@ -71,6 +71,47 @@ jobs:
   that action uses, and `actions/checkout`, unless actions created by GitHub are allowed.
 - **No GitHub App needed:** Claude posts with the job's own `GITHUB_TOKEN`.
 
+### On your own runners
+
+The workflow runs on GitHub-hosted `ubuntu-24.04`. GitHub lets a called workflow use a caller's
+self-hosted runners only when both have the same owner, so to review on runners of your own, your
+job runs the review's action instead:
+
+```yaml
+jobs:
+  review:
+    # The same gate as claude-review.yml's: a person's pull request from a branch here, not a draft.
+    if: >-
+      github.event_name == 'pull_request'
+      && github.event.pull_request.draft == false
+      && github.event.pull_request.head.repo.full_name == github.repository
+      && github.event.sender.type == 'User'
+      && github.event.pull_request.user.type == 'User'
+    runs-on: [self-hosted, linux, x64]
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - uses: princelundgren/prince-claude-pr-review-workflow/.github/actions/review@v1
+        with:
+          claude-code-oauth-token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+```
+
+The trigger, `permissions: {}` and the concurrency group are the same as above. The action itself
+also refuses any event but a pull request from a branch of the repository.
+
+- **With the scrub on (the default),** the action installs bubblewrap and socat with
+  `sudo apt-get` unless the runner has both. Where Ubuntu's AppArmor restricts unprivileged user
+  namespaces, it lifts that with `sudo sysctl` for the whole machine until it reboots. On a runner
+  that outlives the job, install both and decide that setting in the runner's image instead.
+- **`subprocess-scrub: false`** is for a runner where bubblewrap can't create user namespaces,
+  such as an unprivileged container. The commands Claude runs then get every variable in the
+  job's environment, the Claude token among them, without bubblewrap's process isolation: only
+  the exact `gh` allow list and the read block stand between Claude and them. Keep the job's
+  environment free of other credentials, and run it only on a runner no fork's pull request
+  reaches.
+
 ## What it guards
 
 Claude reads text the pull request's author controls, so the workflow keeps the token away from it:
@@ -82,9 +123,12 @@ Claude reads text the pull request's author controls, so the workflow keeps the 
 - Reads blocked outside the checkout, and a refusal of any pull request with a symlink
 - `--setting-sources user`, so settings a pull request adds under `.claude/` don't apply
 - An exact allow list of the three `gh` commands the review needs
-- GitHub-hosted `ubuntu-24.04`, never a self-hosted runner
+- GitHub-hosted `ubuntu-24.04`, a fresh machine for each run
 
-Each step's comment in [`claude-review.yml`](.github/workflows/claude-review.yml) says why.
+A job on your own runners gives up the hosted machine, and keeps the scrub only where bubblewrap
+works ("On your own runners"). Each step's comment in
+[`claude-review.yml`](.github/workflows/claude-review.yml) and the
+[review action](.github/actions/review/action.yml) says why.
 
 ## Versions
 
@@ -95,8 +139,9 @@ Each step's comment in [`claude-review.yml`](.github/workflows/claude-review.yml
   immutable `v1.x.y` tag, so Dependabot can propose the next one.
 
 A change to the review is first reviewed by its own version: this repository's
-[`claude-code-review.yml`](.github/workflows/claude-code-review.yml) calls the workflow beside it.
-Once it has merged, the maintainer tags the merge commit and moves `v1` to it:
+[`claude-code-review.yml`](.github/workflows/claude-code-review.yml) calls the workflow beside it,
+which runs the action at the commit it pins. Once it has merged, the maintainer tags the merge
+commit and moves `v1` to it:
 
 ```sh
 git fetch origin && git merge-base --is-ancestor <sha> origin/main \
@@ -117,8 +162,8 @@ workflows` runs [actionlint](https://github.com/rhysd/actionlint) on every pull 
 - The review prompt is adapted from GitHub Docs'
   [Review code](https://docs.github.com/en/copilot/tutorials/customization-library/prompt-files/review-code)
   prompt file, [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/); the comment above
-  `prompt:` in `claude-review.yml` describes the changes.
+  `prompt:` in the [review action](.github/actions/review/action.yml) describes the changes.
 - The `github-actions-hardening` skill is from
   [github/awesome-copilot](https://github.com/github/awesome-copilot), MIT, with a shorter
-  `description:`; [its LICENSE](.github/actions/review-skills/github-actions-hardening/LICENSE)
+  `description:`; [its LICENSE](.github/actions/review/github-actions-hardening/LICENSE)
   names the source commit.
