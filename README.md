@@ -53,6 +53,8 @@ jobs:
     permissions:
       contents: read
       pull-requests: write
+    # @v1 moves on purpose: only the maintainer of prince-claude-pr-review-workflow can move its v*
+    # tags (a tag ruleset), and each release then reaches every caller without a pull request here.
     uses: princelundgren/prince-claude-pr-review-workflow/.github/workflows/claude-review.yml@v1
     secrets:
       CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
