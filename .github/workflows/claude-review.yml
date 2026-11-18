@@ -96,11 +96,12 @@ jobs:
           # The review prompt is GitHub Docs' "Review code" prompt file
           # (https://docs.github.com/en/copilot/tutorials/customization-library/prompt-files/review-code),
           # CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Changed: it reads AGENTS.md
-          # first, reviews this pull request instead of selected code, adds a Correctness area and
-          # the github-actions-hardening skill for a workflow change, adds drift from README.md and
-          # AGENTS.md, posts a Suggestion only when it names a change, leaves an empty section at
-          # "None." and puts what it checked and found sound under Good Practices, drops the
-          # editor's focus input, and adds how to read and post.
+          # first, reviews this pull request instead of selected code, adds a Correctness area, two
+          # Security items (secrets in code; deserialization, SSRF, cryptography and vulnerable
+          # dependencies) and the github-actions-hardening skill for a workflow change, adds drift
+          # from README.md and AGENTS.md, posts a Suggestion only when it names a change, leaves an
+          # empty section at "None." and puts what it checked and found sound under Good Practices,
+          # drops the editor's focus input, and adds how to read and post.
           prompt: |
             REPO: ${{ github.repository }}
             PR NUMBER: ${{ github.event.pull_request.number }}
@@ -123,6 +124,8 @@ jobs:
                - Authentication and authorization
                - Data exposure risks
                - Injection vulnerabilities
+               - Hardcoded secrets, credentials or keys
+               - Unsafe deserialization, server-side request forgery, weak cryptography, and dependencies with known vulnerabilities
                - A change under `.github/workflows/` or `.github/actions/`: read `.review-skills/github-actions-hardening/SKILL.md` and the references it names, and hold the change to them, reporting in this review's output format, not the skill's. `.review-skills/` comes with this review, not from the pull request
 
             3. **Performance & Efficiency**
