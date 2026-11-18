@@ -1,0 +1,13 @@
+# Puts the skills the Claude review reads into the checkout, at .review-skills/, since the review's
+# reads stay in the working directory. The skills come from this action's commit, never from the
+# pull request: the rm drops any .review-skills the pull request adds.
+name: Review skills
+description: Copies the skills the Claude review reads into the checkout, at .review-skills/.
+runs:
+  using: composite
+  steps:
+    - shell: bash
+      run: |
+        rm -rf "$GITHUB_WORKSPACE/.review-skills"
+        mkdir "$GITHUB_WORKSPACE/.review-skills"
+        cp -R "$GITHUB_ACTION_PATH/github-actions-hardening" "$GITHUB_WORKSPACE/.review-skills/"
