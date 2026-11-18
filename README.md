@@ -14,15 +14,18 @@ file and one secret.
 
 ## What it does
 
-- **Reviews in six areas:** correctness, security, performance, code quality, architecture, and
-  tests and docs, including docs the change makes untrue.
+- **Hunts for defects instead of ticking a checklist:** it reads each changed file whole, follows
+  every other use of what the change touches, lists what the change should have touched and
+  didn't, and checks the pull request's text against the code, in seven areas: correctness,
+  security, performance, gaps, false text, tests, and code quality and design.
 - **Reads the repository's `AGENTS.md` first**, so its own rules apply to the review.
 - **Holds a workflow change to a hardening checklist:** a change under `.github/workflows/` or
   `.github/actions/` is checked against the
   [`github-actions-hardening`](.github/actions/review-skills/github-actions-hardening/SKILL.md)
   skill.
-- **Sorts what it finds** into 🔴 Critical Issues, 🟡 Suggestions and ✅ Good Practices, and
-  doesn't repeat an issue it already posted.
+- **Sorts what it finds** into 🔴 Critical Issues, 🟡 Suggestions, 🔵 Nits and ✅ Checked, and
+  doesn't repeat an issue it already posted. Every push starts another review, so fix a 🔵 only
+  in a push that also fixes something else; otherwise reply why not and resolve the thread.
 - **Skips what it can't safely review:** drafts, pull requests from forks, and anything a bot
   opened or sent.
 
