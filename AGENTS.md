@@ -18,4 +18,6 @@ nothing about the maintainer's own machines, accounts, private repositories or e
 - **Claude reviews each pull request a person opens from this repository**, once it is out of
   draft, with the pull request's own version of the workflow: read its
   `## Claude review of <sha>` summary, and fix or answer each 🔴 and 🟡 before the maintainer
-  merges. Forks, drafts and bots' pull requests get no review.
+  merges. Every push starts another review, so fix a 🔵 only in a push that also fixes something
+  else; otherwise reply why not and resolve its thread. Forks, drafts and bots' pull requests get
+  no review.
