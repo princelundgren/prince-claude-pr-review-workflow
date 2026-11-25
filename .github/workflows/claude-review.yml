@@ -51,6 +51,6 @@ jobs:
       # Pinned by commit SHA, since a called workflow's checkout is the caller's repository, so a ./
       # path would point into it. A change to the action lands first and a second commit moves the
       # pin to it.
-      - uses: princelundgren/prince-claude-pr-review-workflow/.github/actions/review@c247837a9b932fb7e73dadb71128ddb6caec3840
+      - uses: princelundgren/prince-claude-pr-review-workflow/.github/actions/review@215af6071032b17c83df75ae9121e12d98d16eee
         with:
           claude-code-oauth-token: ${{ env.CLAUDE_CODE_OAUTH_TOKEN }}
