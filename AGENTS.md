@@ -13,7 +13,7 @@ nothing about the maintainer's own machines, accounts, private repositories or e
   caller's repository, so a `./` path would point into it. A change to `.github/actions/review/`
   lands in one commit, and a second commit moves the pin to it. Pull requests merge with a merge
   commit (squash and rebase are off), so the pinned commit lands on `main`.
-- **The prompt's sources:** keep the attribution comment above `prompt:` in the action true when
+- **The prompt's sources:** keep the attribution comment at the top of `review-prompt.md` true when
   you change the prompt (CC BY 4.0). `github-actions-hardening/` is github/awesome-copilot's skill
   with a shorter `description:`; keep its LICENSE.
 - **CI** runs on GitHub-hosted runners only, never with `pull_request_target` or `workflow_run`.
