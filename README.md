@@ -178,8 +178,8 @@ workflows` runs [actionlint](https://github.com/rhysd/actionlint) on every pull 
 
 - The review prompt is adapted from GitHub Docs'
   [Review code](https://docs.github.com/en/copilot/tutorials/customization-library/prompt-files/review-code)
-  prompt file, [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/); the comment above
-  `prompt:` in the [review action](.github/actions/review/action.yml) describes the changes.
+  prompt file, [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/); the comment at the top
+  of [`review-prompt.md`](.github/actions/review/review-prompt.md) describes the changes.
 - The `github-actions-hardening` skill is from
   [github/awesome-copilot](https://github.com/github/awesome-copilot), MIT, with a shorter
   `description:`; [its LICENSE](.github/actions/review/github-actions-hardening/LICENSE)
