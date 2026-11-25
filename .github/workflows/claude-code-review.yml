@@ -19,6 +19,7 @@ jobs:
     permissions:
       contents: read
       pull-requests: write
+      id-token: write
     uses: ./.github/workflows/claude-review.yml
     secrets:
-      CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+      CI_SECRETS_AWS_ACCOUNT: ${{ secrets.CI_SECRETS_AWS_ACCOUNT }}

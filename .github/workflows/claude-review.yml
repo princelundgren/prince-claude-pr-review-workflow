@@ -1,14 +1,15 @@
 # Claude reviews a person's pull request and posts a summary whose first line is
 # "## Claude review of <head sha>"; the agent or person merging reads it first. Callers run it on
-# pull_request and pass their CLAUDE_CODE_OAUTH_TOKEN (README.md, "How to call it"). The review
-# itself is the action in .github/actions/review/; this job runs it on a GitHub-hosted runner with
-# the subprocess scrub on.
+# pull_request, grant id-token: write and pass CI_SECRETS_AWS_ACCOUNT (README.md, "How to call
+# it"). The job reads the Claude token from the maintainer's AWS Parameter Store over GitHub OIDC,
+# then runs the review, the action in .github/actions/review/, on a GitHub-hosted runner with the
+# subprocess scrub on.
 name: Claude review
 
 on:
   workflow_call:
     secrets:
-      CLAUDE_CODE_OAUTH_TOKEN:
+      CI_SECRETS_AWS_ACCOUNT:
         required: true
 
 permissions: {}
@@ -30,14 +31,26 @@ jobs:
     timeout-minutes: 20
     # Claude gets this job's token, which can read the code and write to pull requests and nothing
     # more, instead of the Claude GitHub App's token, whose permissions this block can't narrow. The
-    # allow list in the action's claude_args is what limits Claude to commenting.
+    # allow list in the action's claude_args is what limits Claude to commenting. id-token lets the
+    # first step assume the reader role; the action passes github_token, so it needs no OIDC itself.
     permissions:
       contents: read
       pull-requests: write
+      id-token: write
     steps:
+      # The role trusts only this file at refs/tags/v2 and this repository's own pull requests. The
+      # account comes from a secret, so the log shows the role's ARN as ***.
+      - name: Read the Claude token
+        uses: princelundgren/prince-ssm-secrets-action@60358d8e4c956f98a90d981e983014b75513ce56 # v1.0.0
+        with:
+          role-arn: arn:aws:iam::${{ secrets.CI_SECRETS_AWS_ACCOUNT }}:role/pl-prod-ci-secrets-claude-reader
+          path: /ci/claude
+          names: CLAUDE_CODE_OAUTH_TOKEN
+          aws-region: eu-west-1
+
       # Pinned by commit SHA, since a called workflow's checkout is the caller's repository, so a ./
       # path would point into it. A change to the action lands first and a second commit moves the
       # pin to it.
       - uses: princelundgren/prince-claude-pr-review-workflow/.github/actions/review@c247837a9b932fb7e73dadb71128ddb6caec3840
         with:
-          claude-code-oauth-token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          claude-code-oauth-token: ${{ env.CLAUDE_CODE_OAUTH_TOKEN }}

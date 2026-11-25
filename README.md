@@ -10,7 +10,9 @@ commit.
 
 It runs [`anthropics/claude-code-action`](https://github.com/anthropics/claude-code-action) with a
 review prompt and a locked-down setup, so each repository that calls it needs only a short caller
-file and one secret.
+file and one secret. `v2` reads the Claude token from the maintainer's AWS Systems Manager Parameter
+Store, so it serves only the maintainer's repositories; anyone else calls `v1` with a token of their
+own ("Versions").
 
 ## What it does
 
@@ -53,29 +55,35 @@ jobs:
     permissions:
       contents: read
       pull-requests: write
-    # @v1 moves on purpose: only the maintainer of prince-claude-pr-review-workflow can move its v*
+      id-token: write
+    # @v2 moves on purpose: only the maintainer of prince-claude-pr-review-workflow can move its v*
     # tags (a tag ruleset), and each release then reaches every caller without a pull request here.
-    uses: princelundgren/prince-claude-pr-review-workflow/.github/workflows/claude-review.yml@v1
+    uses: princelundgren/prince-claude-pr-review-workflow/.github/workflows/claude-review.yml@v2
     secrets:
-      CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+      CI_SECRETS_AWS_ACCOUNT: ${{ secrets.CI_SECRETS_AWS_ACCOUNT }}
 ```
 
-- **The secret:** set `CLAUDE_CODE_OAUTH_TOKEN` on the repository. Pro and Max users generate one
-  with `claude setup-token`
-  ([claude-code-action's setup guide](https://github.com/anthropics/claude-code-action/blob/main/docs/setup.md)).
-  Pass it by name, not with `secrets: inherit`, so the review gets nothing else.
+- **The secret:** set `CI_SECRETS_AWS_ACCOUNT` on the repository to the AWS account that holds the
+  token. It is a secret, not a variable, so the run log shows the role's ARN as `***`. Pass it by
+  name, not with `secrets: inherit`, so the review gets nothing else.
+- **`id-token: write`:** the job assumes the reader role over GitHub OIDC. A caller that doesn't
+  grant it fails when the run starts.
+- **Call it at `@v2`, not by commit SHA:** the role trusts this workflow only at `refs/tags/v2`.
 - **The concurrency group belongs in the caller only:** a called workflow sees its caller's
   `github.workflow`, so the same group in both would cancel the caller.
 - **An Actions allow list:** if your repository allows only selected actions and reusable
   workflows, allow this repository, `anthropics/claude-code-action`, `oven-sh/setup-bun`, which
-  that action uses, and `actions/checkout`, unless actions created by GitHub are allowed.
+  that action uses, `princelundgren/prince-ssm-secrets-action`,
+  `aws-actions/configure-aws-credentials`, which that action uses, and `actions/checkout`, unless
+  actions created by GitHub are allowed.
 - **No GitHub App needed:** Claude posts with the job's own `GITHUB_TOKEN`.
 
 ### On your own runners
 
 The workflow runs on GitHub-hosted `ubuntu-24.04`. GitHub lets a called workflow use a caller's
 self-hosted runners only when both have the same owner, so to review on runners of your own, your
-job runs the review's action instead:
+job runs the review's action instead. It takes a token of your own, as `v1` does: the reader role
+trusts only `claude-review.yml`, so this job can't read Parameter Store.
 
 ```yaml
 jobs:
@@ -116,10 +124,14 @@ also refuses any event but a pull request from a branch of the repository.
 
 Claude reads text the pull request's author controls, so the workflow keeps the token away from it:
 
+- The token read at run time over GitHub OIDC, by a role that trusts only this workflow at `v2`
+  and this repository's own pull requests. The reader action, at the commit the workflow pins,
+  keeps its AWS credentials to its own step (`output-env-credentials: false`) and puts the token,
+  masked, in the job's environment for the steps after it
 - No default token permissions, and a job token that can read the code and write to pull requests,
   nothing more
 - Claude Code's subprocess environment scrub, so the commands Claude runs don't get the Claude
-  token
+  token from that environment
 - Reads blocked outside the checkout, and a refusal of any pull request with a symlink
 - `--setting-sources user`, so settings a pull request adds under `.claude/` don't apply
 - An exact allow list of the three `gh` commands the review needs
@@ -132,22 +144,27 @@ works ("On your own runners"). Each step's comment in
 
 ## Versions
 
-- **`@v1`** is a moving tag: the latest release with the same caller contract. A change that
-  needs callers to change gets `v2`. It trusts whoever can move the tag: a tag ruleset lets only
+- **`@v2`** is a moving tag: the latest release with the same caller contract. A change that
+  needs callers to change gets `v3`. It trusts whoever can move the tag: a tag ruleset lets only
   the maintainer create, move or delete `v*` tags.
-- **`@<commit sha> # v1.0.0`** locks a caller to one exact release. Each release also gets an
-  immutable `v1.x.y` tag, so Dependabot can propose the next one.
+- **`@v1`** takes a `CLAUDE_CODE_OAUTH_TOKEN` secret instead, and needs no `id-token: write`. Pro
+  and Max users generate a token with `claude setup-token`
+  ([claude-code-action's setup guide](https://github.com/anthropics/claude-code-action/blob/main/docs/setup.md)).
+  Its caller is the example above with `@v1`, no `id-token: write`, and
+  `CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}` under `secrets:`.
+- **`@<commit sha> # v1.0.0`** locks a `v1` caller to one exact release. Each release also gets an
+  immutable `vN.x.y` tag, so Dependabot can propose the next one.
 
 A change to the review is first reviewed by its own version: this repository's
 [`claude-code-review.yml`](.github/workflows/claude-code-review.yml) calls the workflow beside it,
 which runs the action at the commit it pins. Once it has merged, the maintainer tags the merge
-commit and moves `v1` to it:
+commit and moves `v2` to it:
 
 ```sh
 git fetch origin && git merge-base --is-ancestor <sha> origin/main \
-  && git tag -s v1.x.y <sha> -m "v1.x.y: <summary>" \
-  && git tag -f -s v1 <sha> -m "v1 -> v1.x.y" \
-  && git push origin v1.x.y && git push -f origin v1
+  && git tag -s v2.x.y <sha> -m "v2.x.y: <summary>" \
+  && git tag -f -s v2 <sha> -m "v2 -> v2.x.y" \
+  && git push origin v2.x.y && git push -f origin v2
 ```
 
 ## Contributing
