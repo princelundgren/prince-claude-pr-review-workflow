@@ -3,8 +3,11 @@
 This repository is public: everything in it, its commits and its pull requests are public. Write
 nothing about the maintainer's own machines, accounts, private repositories or employer.
 
-- **Every caller on `@v1` runs what `v1` points at.** Tagging a release and moving `v1` is the
-  maintainer's, by hand (README.md, "Versions"): prepare the commands, never push a tag.
+- **Every caller on `@v2` runs what `v2` points at**, and a `v1` caller what `v1` does. Tagging a
+  release and moving its major tag is the maintainer's, by hand (README.md, "Versions"): prepare
+  the commands, never push a tag.
+- **This repository's own review reads the Claude token from AWS,** as `v2` does, so it fails
+  without the `CI_SECRETS_AWS_ACCOUNT` secret.
 - **The review lives in the `review` action**, and `claude-review.yml` runs it on a hosted
   runner. The workflow pins the action by commit SHA, since a called workflow's checkout is the
   caller's repository, so a `./` path would point into it. A change to `.github/actions/review/`
