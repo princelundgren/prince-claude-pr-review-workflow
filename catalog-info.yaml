@@ -1,0 +1,10 @@
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: prince-claude-pr-review-workflow
+  description: Reusable GitHub Actions workflow in which Claude reviews each pull request
+spec:
+  type: library
+  lifecycle: production
+  owner: prince
+  system: ci
